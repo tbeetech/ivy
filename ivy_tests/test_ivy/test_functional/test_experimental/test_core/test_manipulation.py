@@ -669,26 +669,48 @@ def test_column_stack(*, arrays_dtypes, test_flags, backend_fw, fn_name, on_devi
 # concat_from_sequence
 @handle_test(
     fn_tree="functional.ivy.experimental.concat_from_sequence",
-    dtypes_arrays_axis=_concat_from_sequence_helper(),
-    new_axis=st.integers(min_value=0, max_value=1),
-    container_flags=st.just([False]),
-    test_instance_method=st.just(False),
+    dtype_and_sequences=helpers.dtype_and_values(
+        available_dtypes=helpers.get_dtypes("valid"),
+        num_arrays=helpers.ints(min_value=1, max_value=5),
+    ),
+    test_with_out=st.just(False),
+    test_gradients=st.just(False),
 )
 def test_concat_from_sequence(
-    *, dtypes_arrays_axis, new_axis, test_flags, backend_fw, fn_name, on_device
+    *, dtype_and_sequences, test_flags, backend_to_test, fn_name, on_device
 ):
-    dtypes, arrays, axis = dtypes_arrays_axis
+    dtypes, sequences = dtype_and_sequences
 
-    helpers.test_function(
+    kw = {}
+    for i, (sequence, idtype) in enumerate(zip(sequences, dtypes)):
+        kw[f"x{i}"] = np.asarray(sequence, dtype=idtype)
+    test_flags.num_positional_args = len(kw)
+
+    iv.test_function(
         input_dtypes=dtypes,
         test_flags=test_flags,
-        backend_to_test=backend_fw,
+        backend_to_test=backend_to_test,
         fn_name=fn_name,
         on_device=on_device,
-        input_sequence=arrays,
-        new_axis=new_axis,
-        axis=axis,
+        **kw,
     )
+
+
+
+# dsplit
+@handle_test(
+  fn_tree="functional.ivy.experimental.dsplit",
+  dtype_and_x=helpers.dtype_and_values(
+    available_dtypes=helpers.get_dtypes("valid"),
+    shape=st.shared(helpers.get_shape(min_num_dims=3), key="value_shape"),
+  ),
+  indices_or_sections=_get_splits(allow_none=False, min_num_dims=3, axis=2),
+  test_gradients=st.just(False),
+  test_with_out=st.just(False),
+)
+
+
+
 
 
 # dsplit
